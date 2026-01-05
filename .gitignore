@@ -1,0 +1,7 @@
+.venv/
+uploads/
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+extracted_data.json

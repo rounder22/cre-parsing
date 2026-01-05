@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRE Document Parser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Commercial Real Estate Document Parser</h1>
+            <p>Extract key underwriting information from PDF, Word, and Excel documents</p>
+        </div>
+
+        <div class="content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 2v20M2 12h20M6 6l6-6 6 6M6 18l6 6 6-6"/>
+                        </svg>
+                        <h3>Drag and drop files here</h3>
+                        <p>or click to select files</p>
+                        <p class="file-types">Supported: PDF, Word (.docx), Excel (.xlsx)</p>
+                        <input type="file" id="fileInput" multiple hidden accept=".pdf,.docx,.xlsx">
+                    </div>
+                </div>
+                <button id="uploadBtn" class="btn btn-primary">Upload Files</button>
+            </div>
+
+            <!-- Processing Status -->
+            <div id="processingStatus" class="processing-status hidden">
+                <div class="spinner"></div>
+                <p>Processing files...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="results-section hidden">
+                <div class="results-header">
+                    <h2>Extraction Results</h2>
+                    <div class="results-actions">
+                        <button id="exportBtn" class="btn btn-secondary">Export Results</button>
+                        <button id="clearBtn" class="btn btn-secondary">Clear Results</button>
+                    </div>
+                </div>
+
+                <!-- File Results -->
+                <div id="fileResults" class="file-results">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="errorContainer" class="error-container hidden"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
