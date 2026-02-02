@@ -4,6 +4,13 @@ A comprehensive tool for extracting key underwriting information from PDF, Word,
 
 ## Features
 
+### Advanced Data Extraction with OpenAI
+- **GPT-4 Powered**: Uses OpenAI's latest models for advanced document understanding
+- **Structured JSON Output**: Guaranteed schema compliance with JSON Mode
+- **Confidence Scoring**: Get extraction confidence metrics and identify missing fields
+- **Intelligent Fallback**: Automatically uses regex extraction if OpenAI is unavailable
+- **Flexible Configuration**: Choose between OpenAI or regex extraction per document
+
 ### Document Parsing
 - **PDF Support**: Extract text, tables, and metadata from PDF documents
 - **Word Support**: Parse .docx files to extract paragraphs, tables, and formatting
@@ -52,6 +59,7 @@ The tool automatically identifies and extracts:
 ### Prerequisites
 - Python 3.7+
 - pip package manager
+- (Optional) OpenAI API key for advanced extraction
 
 ### Setup
 
@@ -71,12 +79,21 @@ source venv/Scripts/activate  # On Windows
 pip install -r requirements.txt
 ```
 
+4. (Optional) Configure OpenAI Integration:
+```bash
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+```
+
+See [OPENAI_INTEGRATION.md](OPENAI_INTEGRATION.md) for detailed setup and configuration.
+
 ## Running the Application
 
 ### Development Mode
 ```bash
 python run.py
 ```
+
 
 The application will start on `http://localhost:5000`
 

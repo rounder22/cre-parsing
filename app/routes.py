@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 import os
 from app.parsers.extractor import DataExtractor
+from app.config import Config
 import json
 
 main_bp = Blueprint('main', __name__)
@@ -26,6 +27,16 @@ def get_file_type(filename):
 def index():
     return render_template('index.html')
 
+@upload_bp.route('/config', methods=['GET'])
+def get_config():
+    """Get current extraction configuration"""
+    return jsonify({
+        'use_openai': Config.USE_OPENAI_EXTRACTION,
+        'openai_configured': Config.validate_openai_config(),
+        'openai_model': Config.OPENAI_MODEL,
+        'enable_fallback': Config.ENABLE_FALLBACK
+    }), 200
+
 @upload_bp.route('/upload', methods=['POST'])
 def upload_file():
     """Handle file upload and parsing"""
@@ -40,6 +51,11 @@ def upload_file():
         if not allowed_file(file.filename):
             return jsonify({'error': 'File type not supported. Please upload PDF, Word, or Excel files.'}), 400
         
+        # Check for use_openai parameter in request
+        use_openai = request.args.get('use_openai', None)
+        if use_openai is not None:
+            use_openai = use_openai.lower() == 'true'
+        
         # Save uploaded file
         filename = secure_filename(file.filename)
         upload_folder = 'uploads'
@@ -47,9 +63,9 @@ def upload_file():
         filepath = os.path.join(upload_folder, filename)
         file.save(filepath)
         
-        # Parse the file
+        # Parse the file with specified extraction method
         file_type = get_file_type(filename)
-        extractor = DataExtractor(filepath, file_type)
+        extractor = DataExtractor(filepath, file_type, use_openai=use_openai)
         result = extractor.extract_all()
         
         return jsonify(result), 200
@@ -68,6 +84,11 @@ def batch_upload():
         results = []
         errors = []
         
+        # Check for use_openai parameter in request
+        use_openai = request.args.get('use_openai', None)
+        if use_openai is not None:
+            use_openai = use_openai.lower() == 'true'
+        
         for file in files:
             try:
                 if file.filename == '':
@@ -84,7 +105,7 @@ def batch_upload():
                 file.save(filepath)
                 
                 file_type = get_file_type(filename)
-                extractor = DataExtractor(filepath, file_type)
+                extractor = DataExtractor(filepath, file_type, use_openai=use_openai)
                 result = extractor.extract_all()
                 result['filename'] = filename
                 results.append(result)
@@ -93,6 +114,18 @@ def batch_upload():
                 errors.append({'file': file.filename, 'error': str(e)})
         
         return jsonify({'results': results, 'errors': errors}), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@upload_bp.route('/update', methods=['POST'])
+def update_data():
+    """Update extracted data"""
+    try:
+        data = request.get_json()
+        # Here you could save to database or return the updated data
+        # For now, we'll just return the updated data back
+        return jsonify(data), 200
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -112,3 +145,4 @@ def export_results():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+

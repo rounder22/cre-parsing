@@ -3,13 +3,15 @@ from typing import Dict, Any, List, Optional
 from app.parsers.pdf_parser import PDFParser
 from app.parsers.word_parser import WordParser
 from app.parsers.excel_parser import ExcelParser
+from app.config import Config
 
 class DataExtractor:
     """Extracts key CRE underwriting information from parsed documents"""
     
-    def __init__(self, file_path: str, file_type: str):
+    def __init__(self, file_path: str, file_type: str, use_openai: Optional[bool] = None):
         self.file_path = file_path
         self.file_type = file_type
+        self.use_openai = use_openai if use_openai is not None else Config.USE_OPENAI_EXTRACTION
         self.parser = self._get_parser()
         self.raw_data = {}
         self.extracted_metrics = {}
@@ -26,30 +28,65 @@ class DataExtractor:
             raise ValueError(f"Unsupported file type: {self.file_type}")
     
     def extract_all(self) -> Dict[str, Any]:
-        """Extract all available information"""
+        """Extract all available information using OpenAI or regex-based methods"""
         self.raw_data = self.parser.parse()
         
-        # Get text for keyword extraction
+        # Get text for extraction
         text = self.parser.extract_text()
         
-        # Extract CRE-specific metrics
-        self.extracted_metrics = {
-            'property_details': self._extract_property_details(text),
-            'financial_metrics': self._extract_financial_metrics(text),
-            'loan_details': self._extract_loan_details(text),
-            'tenant_info': self._extract_tenant_info(text),
-            'market_analysis': self._extract_market_analysis(text),
-            'risk_factors': self._extract_risk_factors(text)
-        }
+        # Use OpenAI if enabled and configured
+        if self.use_openai and Config.validate_openai_config():
+            try:
+                from app.parsers.openai_extractor import OpenAIExtractor
+                openai_extractor = OpenAIExtractor()
+                self.extracted_metrics = openai_extractor.extract_with_confidence(text)
+                extraction_method = 'openai'
+            except Exception as e:
+                # Fallback to regex extraction if OpenAI fails and fallback is enabled
+                if Config.ENABLE_FALLBACK:
+                    self.extracted_metrics = self._extract_metrics_regex(text)
+                    extraction_method = 'regex_fallback'
+                else:
+                    raise Exception(f"OpenAI extraction failed and fallback disabled: {str(e)}")
+        else:
+            # Use regex-based extraction
+            self.extracted_metrics = self._extract_metrics_regex(text)
+            extraction_method = 'regex'
         
         return {
             'file_info': {
                 'file_type': self.file_type,
                 'pages': self.raw_data.get('pages') or len(self.raw_data.get('sheets', [])),
-                'file_path': self.file_path
+                'file_path': self.file_path,
+                'extraction_method': extraction_method
             },
             'raw_data': self.raw_data,
             'extracted_metrics': self.extracted_metrics
+        }
+    
+    def _extract_metrics_regex(self, text: str) -> Dict[str, Any]:
+        """Extract metrics using regex patterns with citation support"""
+        return {
+            'property_details': self._extract_property_details_with_citations(text),
+            'financial_metrics': self._extract_financial_metrics_with_citations(text),
+            'loan_details': self._extract_loan_details_with_citations(text),
+            'tenant_information': {
+                'major_tenants': self._find_multiple_patterns_with_citations(text, r'(?:Tenant|Anchor|Major Tenant):\s*([^\n]+)', 5),
+                'lease_terms': self._find_pattern_with_citation(text, r'(?:Lease Term|Remaining Term):\s*([^\n]+)', 0),
+                'tenant_quality': self._find_pattern_with_citation(text, r'(?:Tenant Quality|Credit Quality):\s*([^\n]+)', 0)
+            },
+            'market_analysis': self._extract_market_analysis_with_citations(text),
+            'risk_assessment': {
+                'identified_risks': self._find_multiple_patterns_with_citations(text, r'(?:Risk|Risk Factor|Concern):\s*([^\n]+)', 5),
+                'mitigation_strategies': self._find_multiple_patterns_with_citations(text, r'(?:Mitigation|Mitigation Strategy):\s*([^\n]+)', 5)
+            },
+            'extraction_metadata': {
+                'confidence_score': 0.0,
+                'missing_fields': [],
+                'fields_with_citations': 0,
+                'fields_without_citations': 0,
+                'citation_coverage_percent': 0.0
+            }
         }
     
     def _extract_property_details(self, text: str) -> Dict[str, Optional[str]]:
@@ -60,9 +97,21 @@ class DataExtractor:
             'square_footage': self._find_pattern(text, r'(?:Square Feet|SF|Total Area):\s*([\d,]+)', 0),
             'year_built': self._find_pattern(text, r'(?:Year Built|Year Constructed):\s*(\d{4})', 0),
             'units': self._find_pattern(text, r'(?:Number of Units|Total Units):\s*(\d+)', 0),
-            'occupancy': self._find_pattern(text, r'(?:Occupancy Rate|Occupancy):\s*([\d.]+%)', 0)
+            'occupancy_rate': self._find_pattern(text, r'(?:Occupancy Rate|Occupancy):\s*([\d.]+%)', 0)
         }
         return {k: v for k, v in details.items() if v}
+    
+    def _extract_property_details_with_citations(self, text: str) -> Dict[str, Any]:
+        """Extract property details with source citations"""
+        details = {
+            'property_address': self._find_pattern_with_citation(text, r'(?:Address|Location|Property):\s*([^\n]+)', 0),
+            'property_type': self._find_pattern_with_citation(text, r'(?:Property Type|Asset Class):\s*([^\n]+)', 0),
+            'square_footage': self._find_pattern_with_citation(text, r'(?:Square Feet|SF|Total Area):\s*([\d,]+)', 0),
+            'year_built': self._find_pattern_with_citation(text, r'(?:Year Built|Year Constructed):\s*(\d{4})', 0),
+            'units': self._find_pattern_with_citation(text, r'(?:Number of Units|Total Units):\s*(\d+)', 0),
+            'occupancy_rate': self._find_pattern_with_citation(text, r'(?:Occupancy Rate|Occupancy):\s*([\d.]+%)', 0)
+        }
+        return details
     
     def _extract_financial_metrics(self, text: str) -> Dict[str, Optional[str]]:
         """Extract financial metrics like NOI, cap rate, valuations"""
@@ -79,12 +128,27 @@ class DataExtractor:
         }
         return {k: v for k, v in metrics.items() if v}
     
+    def _extract_financial_metrics_with_citations(self, text: str) -> Dict[str, Any]:
+        """Extract financial metrics with citations"""
+        metrics = {
+            'noi_annual': self._find_pattern_with_citation(text, r'(?:Net Operating Income|NOI):\s*\$?([\d,]+\.?\d*)', 0),
+            'cap_rate': self._find_pattern_with_citation(text, r'(?:Cap Rate|Capitalization Rate):\s*([\d.]+)%?', 0),
+            'purchase_price': self._find_pattern_with_citation(text, r'(?:Purchase Price|Acquisition Price):\s*\$?([\d,]+\.?\d*)', 0),
+            'appraised_value': self._find_pattern_with_citation(text, r'(?:Appraised Value|Valuation):\s*\$?([\d,]+\.?\d*)', 0),
+            'annual_gross_income': self._find_pattern_with_citation(text, r'(?:Gross Income|Annual Revenue):\s*\$?([\d,]+\.?\d*)', 0),
+            'operating_expenses': self._find_pattern_with_citation(text, r'(?:Operating Expenses|OpEx):\s*\$?([\d,]+\.?\d*)', 0),
+            'debt_service': self._find_pattern_with_citation(text, r'(?:Debt Service|Annual Debt Service):\s*\$?([\d,]+\.?\d*)', 0),
+            'dscr': self._find_pattern_with_citation(text, r'(?:DSCR|Debt Service Coverage Ratio):\s*([\d.]+)', 0),
+            'irr': self._find_pattern_with_citation(text, r'(?:IRR|Internal Rate of Return):\s*([\d.]+)%?', 0)
+        }
+        return metrics
+    
     def _extract_loan_details(self, text: str) -> Dict[str, Optional[str]]:
         """Extract loan terms and conditions"""
         details = {
             'loan_amount': self._find_pattern(text, r'(?:Loan Amount|Credit Facility):\s*\$?([\d,]+\.?\d*)', 0),
             'interest_rate': self._find_pattern(text, r'(?:Interest Rate|Rate):\s*([\d.]+)%?', 0),
-            'loan_term': self._find_pattern(text, r'(?:Loan Term|Amortization Period):\s*(\d+)\s*(?:year|month)', 0),
+            'loan_term_years': self._find_pattern(text, r'(?:Loan Term|Amortization Period):\s*(\d+)\s*(?:year|month)', 0),
             'loan_type': self._find_pattern(text, r'(?:Loan Type|Facility Type):\s*([^\n]+)', 0),
             'lender': self._find_pattern(text, r'(?:Lender|Bank|Financial Institution):\s*([^\n]+)', 0),
             'maturity_date': self._find_pattern(text, r'(?:Maturity Date|Loan Maturity):\s*([^\n]+)', 0),
@@ -92,32 +156,38 @@ class DataExtractor:
         }
         return {k: v for k, v in details.items() if v}
     
-    def _extract_tenant_info(self, text: str) -> Dict[str, Optional[str]]:
-        """Extract tenant and tenant mix information"""
-        info = {
-            'major_tenants': self._find_multiple_patterns(text, r'(?:Tenant|Anchor|Major Tenant):\s*([^\n]+)', 3),
-            'lease_terms': self._find_pattern(text, r'(?:Lease Term|Remaining Term):\s*([^\n]+)', 0),
-            'tenant_quality': self._find_pattern(text, r'(?:Tenant Quality|Credit Quality):\s*([^\n]+)', 0)
+    def _extract_loan_details_with_citations(self, text: str) -> Dict[str, Any]:
+        """Extract loan details with citations"""
+        details = {
+            'loan_amount': self._find_pattern_with_citation(text, r'(?:Loan Amount|Credit Facility):\s*\$?([\d,]+\.?\d*)', 0),
+            'interest_rate': self._find_pattern_with_citation(text, r'(?:Interest Rate|Rate):\s*([\d.]+)%?', 0),
+            'loan_term_years': self._find_pattern_with_citation(text, r'(?:Loan Term|Amortization Period):\s*(\d+)\s*(?:year|month)', 0),
+            'loan_type': self._find_pattern_with_citation(text, r'(?:Loan Type|Facility Type):\s*([^\n]+)', 0),
+            'lender': self._find_pattern_with_citation(text, r'(?:Lender|Bank|Financial Institution):\s*([^\n]+)', 0),
+            'maturity_date': self._find_pattern_with_citation(text, r'(?:Maturity Date|Loan Maturity):\s*([^\n]+)', 0),
+            'ltv': self._find_pattern_with_citation(text, r'(?:LTV|Loan to Value):\s*([\d.]+)%?', 0)
         }
-        return {k: v for k, v in info.items() if v}
+        return details
     
-    def _extract_market_analysis(self, text: str) -> Dict[str, Optional[str]]:
+    def _extract_market_analysis(self, text: str) -> Dict[str, Any]:
         """Extract market-related information"""
         analysis = {
             'market': self._find_pattern(text, r'(?:Market|Market Analysis|MSA):\s*([^\n]+)', 0),
             'submarket': self._find_pattern(text, r'(?:Submarket|Sub-market):\s*([^\n]+)', 0),
-            'comparable_properties': self._find_pattern(text, r'(?:Comparable|Comp|Similar Properties):\s*([^\n]+)', 0),
-            'market_trends': self._find_pattern(text, r'(?:Market Trend|Trend):\s*([^\n]+)', 0)
+            'comparable_properties': self._find_multiple_patterns(text, r'(?:Comparable|Comp|Similar Properties):\s*([^\n]+)', 5),
+            'market_trends': self._find_multiple_patterns(text, r'(?:Market Trend|Trend):\s*([^\n]+)', 5)
         }
         return {k: v for k, v in analysis.items() if v}
     
-    def _extract_risk_factors(self, text: str) -> Dict[str, Optional[str]]:
-        """Extract risk factors and considerations"""
-        factors = {
-            'risks': self._find_multiple_patterns(text, r'(?:Risk|Risk Factor|Concern):\s*([^\n]+)', 5),
-            'mitigation': self._find_pattern(text, r'(?:Mitigation|Mitigation Strategy):\s*([^\n]+)', 0)
+    def _extract_market_analysis_with_citations(self, text: str) -> Dict[str, Any]:
+        """Extract market analysis with citations"""
+        analysis = {
+            'market': self._find_pattern_with_citation(text, r'(?:Market|Market Analysis|MSA):\s*([^\n]+)', 0),
+            'submarket': self._find_pattern_with_citation(text, r'(?:Submarket|Sub-market):\s*([^\n]+)', 0),
+            'comparable_properties': self._find_multiple_patterns_with_citations(text, r'(?:Comparable|Comp|Similar Properties):\s*([^\n]+)', 5),
+            'market_trends': self._find_multiple_patterns_with_citations(text, r'(?:Market Trend|Trend):\s*([^\n]+)', 5)
         }
-        return {k: v for k, v in factors.items() if v}
+        return analysis
     
     def _find_pattern(self, text: str, pattern: str, index: int = 0) -> Optional[str]:
         """Find a single pattern in text"""
@@ -134,3 +204,50 @@ class DataExtractor:
             return [m.strip() for m in matches[:limit] if m.strip()]
         except:
             return []
+    
+    def _find_pattern_with_citation(self, text: str, pattern: str, index: int = 0) -> Dict[str, Optional[str]]:
+        """Find a single pattern in text and return with citation"""
+        try:
+            matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
+            match_list = list(matches)
+            
+            if match_list and index < len(match_list):
+                match = match_list[index]
+                value = match.group(1).strip() if match.lastindex and match.lastindex >= 1 else None
+                
+                if value:
+                    # Get surrounding context for citation (up to 100 chars before and after)
+                    start = max(0, match.start() - 50)
+                    end = min(len(text), match.end() + 50)
+                    citation = text[start:end].strip()
+                    
+                    return {"value": value, "citation": citation}
+            
+            return {"value": None, "citation": None}
+        except:
+            return {"value": None, "citation": None}
+    
+    def _find_multiple_patterns_with_citations(self, text: str, pattern: str, limit: int = 5) -> List[Dict[str, Optional[str]]]:
+        """Find multiple patterns in text with citations"""
+        try:
+            matches = list(re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE))
+            results = []
+            
+            for match in matches[:limit]:
+                value = match.group(1).strip() if match.lastindex and match.lastindex >= 1 else None
+                
+                if value:
+                    # Get surrounding context for citation
+                    start = max(0, match.start() - 50)
+                    end = min(len(text), match.end() + 50)
+                    citation = text[start:end].strip()
+                    
+                    results.append({
+                        "name" if "tenant" in pattern.lower() or "risk" in pattern.lower() else "property": value,
+                        "citation": citation
+                    })
+            
+            return results
+        except:
+            return []
+

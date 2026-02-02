@@ -6,11 +6,13 @@ const processingStatus = document.getElementById('processingStatus');
 const resultsSection = document.getElementById('resultsSection');
 const fileResults = document.getElementById('fileResults');
 const errorContainer = document.getElementById('errorContainer');
+const saveBtn = document.getElementById('saveBtn');
 const exportBtn = document.getElementById('exportBtn');
 const clearBtn = document.getElementById('clearBtn');
 
 let uploadedFiles = [];
 let extractedData = [];
+let dataModified = false;
 
 // File Upload Handlers
 uploadArea.addEventListener('click', () => fileInput.click());
@@ -104,6 +106,7 @@ function displayResults(results, errors) {
 function createFileCard(result, index) {
     const card = document.createElement('div');
     card.className = 'file-result';
+    card.dataset.index = index;
 
     const { file_info, extracted_metrics } = result;
 
@@ -119,64 +122,154 @@ function createFileCard(result, index) {
     `;
     card.appendChild(header);
 
+    // Create MOIC display section
+    const moicSection = createMOICSection(extracted_metrics, index);
+    card.appendChild(moicSection);
+
     // Create tabs for different metric groups
-    const metricsGroups = createMetricsGroups(extracted_metrics);
+    const metricsGroups = createMetricsGroups(extracted_metrics, index);
     card.appendChild(metricsGroups);
 
     return card;
 }
 
-function createMetricsGroups(metrics) {
+function createMOICSection(metrics, index) {
+    const section = document.createElement('div');
+    section.className = 'moic-section';
+    
+    const financialMetrics = metrics.financial_metrics || {};
+    const projectCost = getMetricValue(financialMetrics.project_cost) || getMetricValue(financialMetrics.purchase_price);
+    const exitValuation = getMetricValue(financialMetrics.expected_exit_valuation);
+    
+    const moic = calculateMOIC(projectCost, exitValuation);
+    
+    section.innerHTML = `
+        <div class="moic-header">
+            <h4>📈 Investment Metrics & MOIC</h4>
+        </div>
+        <div class="moic-inputs">
+            <div class="moic-input-group">
+                <label>Project Cost ($)</label>
+                <input type="number" class="editable-input" data-index="${index}" 
+                       data-category="financial_metrics" data-field="project_cost" 
+                       value="${projectCost || ''}" placeholder="Enter project cost">
+            </div>
+            <div class="moic-input-group">
+                <label>Expected Exit Valuation ($)</label>
+                <input type="number" class="editable-input" data-index="${index}" 
+                       data-category="financial_metrics" data-field="expected_exit_valuation" 
+                       value="${exitValuation || ''}" placeholder="Enter exit valuation">
+            </div>
+        </div>
+        <div class="moic-display">
+            <div class="moic-result">
+                <span class="moic-label">MOIC:</span>
+                <span class="moic-value" data-index="${index}">${moic}</span>
+            </div>
+        </div>
+    `;
+    
+    return section;
+}
+
+function getMetricValue(metric) {
+    if (!metric) return null;
+    if (typeof metric === 'object' && metric.value !== undefined) {
+        return metric.value;
+    }
+    return metric;
+}
+
+function calculateMOIC(projectCost, exitValuation) {
+    if (!projectCost || !exitValuation || projectCost === 0) {
+        return 'N/A';
+    }
+    const moic = exitValuation / projectCost;
+    return moic.toFixed(2) + 'x';
+}
+
+function createMetricsGroups(metrics, index) {
     const container = document.createElement('div');
+    container.className = 'metrics-container';
 
     const categories = [
         { key: 'property_details', label: '🏢 Property Details' },
         { key: 'financial_metrics', label: '💰 Financial Metrics' },
         { key: 'loan_details', label: '💳 Loan Details' },
         { key: 'tenant_info', label: '👥 Tenant Information' },
+        { key: 'tenant_information', label: '👥 Tenant Information' },
         { key: 'market_analysis', label: '📊 Market Analysis' },
-        { key: 'risk_factors', label: '⚠️ Risk Factors' }
+        { key: 'risk_factors', label: '⚠️ Risk Factors' },
+        { key: 'risk_assessment', label: '⚠️ Risk Assessment' }
     ];
 
     categories.forEach(({ key, label }) => {
         const data = metrics[key];
         if (data && Object.keys(data).length > 0) {
             const group = document.createElement('div');
-            group.className = 'metrics-group';
-            group.innerHTML = `<h4>${label}</h4>`;
+            group.className = 'metrics-group collapsible';
+            
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'metrics-group-header';
+            groupHeader.innerHTML = `<h4>${label}</h4><span class="collapse-icon">▼</span>`;
+            groupHeader.onclick = () => {
+                group.classList.toggle('collapsed');
+            };
+            group.appendChild(groupHeader);
+            
+            const groupContent = document.createElement('div');
+            groupContent.className = 'metrics-group-content';
 
-            if (key === 'tenant_info' && data.major_tenants) {
+            if ((key === 'tenant_info' || key === 'tenant_information') && data.major_tenants) {
                 const ul = document.createElement('ul');
                 ul.className = 'metrics-list';
-                data.major_tenants.forEach(tenant => {
+                const tenants = Array.isArray(data.major_tenants) ? data.major_tenants : [];
+                tenants.forEach(tenant => {
                     const li = document.createElement('li');
-                    li.textContent = tenant;
+                    li.textContent = typeof tenant === 'object' ? tenant.name : tenant;
                     ul.appendChild(li);
                 });
-                group.appendChild(ul);
-            } else if (key === 'risk_factors' && data.risks) {
+                groupContent.appendChild(ul);
+            } else if ((key === 'risk_factors' || key === 'risk_assessment') && (data.risks || data.identified_risks)) {
                 const ul = document.createElement('ul');
                 ul.className = 'metrics-list';
-                data.risks.forEach(risk => {
+                const risks = data.risks || data.identified_risks || [];
+                const riskArray = Array.isArray(risks) ? risks : [];
+                riskArray.forEach(risk => {
                     const li = document.createElement('li');
-                    li.textContent = risk;
+                    li.textContent = typeof risk === 'object' ? risk.risk : risk;
                     ul.appendChild(li);
                 });
-                group.appendChild(ul);
+                groupContent.appendChild(ul);
             } else {
-                Object.entries(data).forEach(([metricKey, value]) => {
-                    if (Array.isArray(value)) return; // Skip arrays
+                Object.entries(data).forEach(([metricKey, metricData]) => {
+                    if (Array.isArray(metricData)) return; // Skip arrays handled above
+                    
+                    const value = getMetricValue(metricData);
                     const item = document.createElement('div');
                     item.className = 'metric-item';
                     const displayKey = metricKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    // Skip project_cost and expected_exit_valuation as they're in MOIC section
+                    if (metricKey === 'project_cost' || metricKey === 'expected_exit_valuation') {
+                        return;
+                    }
+                    
+                    // Determine if field should be editable
+                    const isNumeric = typeof value === 'number' || !isNaN(parseFloat(value));
+                    const inputType = isNumeric ? 'number' : 'text';
+                    
                     item.innerHTML = `
                         <span class="metric-label">${displayKey}:</span>
-                        <span class="metric-value ${!value ? 'empty' : ''}">${value || 'Not found'}</span>
+                        <input type="${inputType}" class="metric-value editable-input" 
+                               data-index="${index}" data-category="${key}" data-field="${metricKey}" 
+                               value="${value || ''}" placeholder="Not found">
                     `;
-                    group.appendChild(item);
+                    groupContent.appendChild(item);
                 });
             }
-
+            
+            group.appendChild(groupContent);
             container.appendChild(group);
         }
     });
@@ -234,6 +327,94 @@ exportBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
+// Save Changes
+saveBtn.addEventListener('click', async () => {
+    if (!dataModified) {
+        alert('No changes to save');
+        return;
+    }
+    
+    // Update extractedData from UI
+    updateExtractedDataFromUI();
+    
+    try {
+        const response = await fetch('/api/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(extractedData)
+        });
+        
+        if (response.ok) {
+            alert('Changes saved successfully!');
+            dataModified = false;
+            saveBtn.style.background = '#757575';
+        } else {
+            alert('Error saving changes');
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+});
+
+function updateExtractedDataFromUI() {
+    document.querySelectorAll('.editable-input').forEach(input => {
+        const index = parseInt(input.dataset.index);
+        const category = input.dataset.category;
+        const field = input.dataset.field;
+        const value = input.value;
+        
+        if (extractedData[index] && extractedData[index].extracted_metrics) {
+            if (!extractedData[index].extracted_metrics[category]) {
+                extractedData[index].extracted_metrics[category] = {};
+            }
+            
+            // Handle both simple values and citation objects
+            const currentValue = extractedData[index].extracted_metrics[category][field];
+            if (typeof currentValue === 'object' && currentValue !== null && 'value' in currentValue) {
+                extractedData[index].extracted_metrics[category][field].value = 
+                    input.type === 'number' ? parseFloat(value) || null : value;
+            } else {
+                extractedData[index].extracted_metrics[category][field] = 
+                    input.type === 'number' ? parseFloat(value) || null : value;
+            }
+        }
+    });
+}
+
+// Add event delegation for input changes
+document.addEventListener('input', (e) => {
+    if (e.target.classList.contains('editable-input')) {
+        dataModified = true;
+        saveBtn.style.background = '#4CAF50';
+        
+        // If it's a MOIC-related field, recalculate MOIC
+        if (e.target.dataset.field === 'project_cost' || e.target.dataset.field === 'expected_exit_valuation') {
+            recalculateMOIC(e.target.dataset.index);
+        }
+    }
+});
+
+function recalculateMOIC(index) {
+    const projectCostInput = document.querySelector(
+        `input[data-index="${index}"][data-field="project_cost"]`
+    );
+    const exitValuationInput = document.querySelector(
+        `input[data-index="${index}"][data-field="expected_exit_valuation"]`
+    );
+    const moicDisplay = document.querySelector(
+        `.moic-value[data-index="${index}"]`
+    );
+    
+    if (projectCostInput && exitValuationInput && moicDisplay) {
+        const projectCost = parseFloat(projectCostInput.value);
+        const exitValuation = parseFloat(exitValuationInput.value);
+        const moic = calculateMOIC(projectCost, exitValuation);
+        moicDisplay.textContent = moic;
+    }
+}
+
 // Clear Results
 clearBtn.addEventListener('click', () => {
     fileResults.innerHTML = '';
@@ -243,4 +424,6 @@ clearBtn.addEventListener('click', () => {
     extractedData = [];
     uploadedFiles = [];
     fileInput.value = '';
+    dataModified = false;
+    saveBtn.style.background = '#757575';
 });
