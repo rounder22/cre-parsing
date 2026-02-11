@@ -104,12 +104,16 @@ class DataExtractor:
     def _extract_property_details_with_citations(self, text: str) -> Dict[str, Any]:
         """Extract property details with source citations"""
         details = {
-            'property_address': self._find_pattern_with_citation(text, r'(?:Address|Location|Property):\s*([^\n]+)', 0),
-            'property_type': self._find_pattern_with_citation(text, r'(?:Property Type|Asset Class):\s*([^\n]+)', 0),
-            'square_footage': self._find_pattern_with_citation(text, r'(?:Square Feet|SF|Total Area):\s*([\d,]+)', 0),
-            'year_built': self._find_pattern_with_citation(text, r'(?:Year Built|Year Constructed):\s*(\d{4})', 0),
-            'units': self._find_pattern_with_citation(text, r'(?:Number of Units|Total Units):\s*(\d+)', 0),
-            'occupancy_rate': self._find_pattern_with_citation(text, r'(?:Occupancy Rate|Occupancy):\s*([\d.]+%)', 0)
+            'property_address': self._find_pattern_with_source(text, r'(?:Address|Location|Property):\s*([^\n]+)', 0),
+            'property_type': self._find_pattern_with_source(text, r'(?:Property Type|Asset Class):\s*([^\n]+)', 0),
+            'square_footage': self._find_pattern_with_source(text, r'(?:Square Feet|SF|Total Area):\s*([\d,]+)', 0),
+            'acres': self._find_pattern_with_source(text, r'(?:Acres|Acreage|Land Area):\s*([\d,.]+)', 0),
+            'land_square_feet': self._find_pattern_with_source(text, r'(?:Land Square Feet|Land SF|Land Area\s*\(SF\)):\s*([\d,]+)', 0),
+            'gross_building_area': self._find_pattern_with_source(text, r'(?:Gross Building Area|GBA):\s*([\d,]+)', 0),
+            'net_rentable_area': self._find_pattern_with_source(text, r'(?:Net Rentable Area|NRA):\s*([\d,]+)', 0),
+            'year_built': self._find_pattern_with_source(text, r'(?:Year Built|Year Constructed):\s*(\d{4})', 0),
+            'units': self._find_pattern_with_source(text, r'(?:Number of Units|Total Units):\s*(\d+)', 0),
+            'occupancy_rate': self._find_pattern_with_source(text, r'(?:Occupancy Rate|Occupancy):\s*([\d.]+%)', 0)
         }
         return details
     
@@ -131,15 +135,19 @@ class DataExtractor:
     def _extract_financial_metrics_with_citations(self, text: str) -> Dict[str, Any]:
         """Extract financial metrics with citations"""
         metrics = {
-            'noi_annual': self._find_pattern_with_citation(text, r'(?:Net Operating Income|NOI):\s*\$?([\d,]+\.?\d*)', 0),
-            'cap_rate': self._find_pattern_with_citation(text, r'(?:Cap Rate|Capitalization Rate):\s*([\d.]+)%?', 0),
-            'purchase_price': self._find_pattern_with_citation(text, r'(?:Purchase Price|Acquisition Price):\s*\$?([\d,]+\.?\d*)', 0),
-            'appraised_value': self._find_pattern_with_citation(text, r'(?:Appraised Value|Valuation):\s*\$?([\d,]+\.?\d*)', 0),
-            'annual_gross_income': self._find_pattern_with_citation(text, r'(?:Gross Income|Annual Revenue):\s*\$?([\d,]+\.?\d*)', 0),
-            'operating_expenses': self._find_pattern_with_citation(text, r'(?:Operating Expenses|OpEx):\s*\$?([\d,]+\.?\d*)', 0),
-            'debt_service': self._find_pattern_with_citation(text, r'(?:Debt Service|Annual Debt Service):\s*\$?([\d,]+\.?\d*)', 0),
-            'dscr': self._find_pattern_with_citation(text, r'(?:DSCR|Debt Service Coverage Ratio):\s*([\d.]+)', 0),
-            'irr': self._find_pattern_with_citation(text, r'(?:IRR|Internal Rate of Return):\s*([\d.]+)%?', 0)
+            'noi_annual': self._find_pattern_with_source(text, r'(?:Net Operating Income|NOI):\s*\$?([\d,]+\.?\d*)', 0),
+            'stabilized_noi': self._find_pattern_with_source(text, r'(?:Stabilized NOI|Stabilized Net Operating Income):\s*\$?([\d,]+\.?\d*)', 0),
+            'cap_rate': self._find_pattern_with_source(text, r'(?:Cap Rate|Capitalization Rate):\s*([\d.]+)%?', 0),
+            'purchase_price': self._find_pattern_with_source(text, r'(?:Purchase Price|Acquisition Price):\s*\$?([\d,]+\.?\d*)', 0),
+            'appraised_value': self._find_pattern_with_source(text, r'(?:Appraised Value|Valuation):\s*\$?([\d,]+\.?\d*)', 0),
+            'annual_gross_income': self._find_pattern_with_source(text, r'(?:Gross Income|Annual Revenue):\s*\$?([\d,]+\.?\d*)', 0),
+            'operating_expenses': self._find_pattern_with_source(text, r'(?:Operating Expenses|OpEx):\s*\$?([\d,]+\.?\d*)', 0),
+            'debt_service': self._find_pattern_with_source(text, r'(?:Debt Service|Annual Debt Service):\s*\$?([\d,]+\.?\d*)', 0),
+            'dscr': self._find_pattern_with_source(text, r'(?:DSCR|Debt Service Coverage Ratio):\s*([\d.]+)', 0),
+            'irr': self._find_pattern_with_source(text, r'(?:IRR|Internal Rate of Return):\s*([\d.]+)%?', 0),
+            'project_cost': self._find_pattern_with_source(text, r'(?:Total Project Cost|Project Cost|Total Cost):\s*\$?([\d,]+\.?\d*)', 0),
+            'expected_exit_valuation': self._find_pattern_with_source(text, r'(?:Expected Exit Valuation|Exit Valuation|Terminal Value):\s*\$?([\d,]+\.?\d*)', 0),
+            'expected_rents': []
         }
         return metrics
     
@@ -159,13 +167,13 @@ class DataExtractor:
     def _extract_loan_details_with_citations(self, text: str) -> Dict[str, Any]:
         """Extract loan details with citations"""
         details = {
-            'loan_amount': self._find_pattern_with_citation(text, r'(?:Loan Amount|Credit Facility):\s*\$?([\d,]+\.?\d*)', 0),
-            'interest_rate': self._find_pattern_with_citation(text, r'(?:Interest Rate|Rate):\s*([\d.]+)%?', 0),
-            'loan_term_years': self._find_pattern_with_citation(text, r'(?:Loan Term|Amortization Period):\s*(\d+)\s*(?:year|month)', 0),
-            'loan_type': self._find_pattern_with_citation(text, r'(?:Loan Type|Facility Type):\s*([^\n]+)', 0),
-            'lender': self._find_pattern_with_citation(text, r'(?:Lender|Bank|Financial Institution):\s*([^\n]+)', 0),
-            'maturity_date': self._find_pattern_with_citation(text, r'(?:Maturity Date|Loan Maturity):\s*([^\n]+)', 0),
-            'ltv': self._find_pattern_with_citation(text, r'(?:LTV|Loan to Value):\s*([\d.]+)%?', 0)
+            'loan_amount': self._find_pattern_with_source(text, r'(?:Loan Amount|Credit Facility):\s*\$?([\d,]+\.?\d*)', 0),
+            'interest_rate': self._find_pattern_with_source(text, r'(?:Interest Rate|Rate):\s*([\d.]+)%?', 0),
+            'loan_term_years': self._find_pattern_with_source(text, r'(?:Loan Term|Amortization Period):\s*(\d+)\s*(?:year|month)', 0),
+            'loan_type': self._find_pattern_with_source(text, r'(?:Loan Type|Facility Type):\s*([^\n]+)', 0),
+            'lender': self._find_pattern_with_source(text, r'(?:Lender|Bank|Financial Institution):\s*([^\n]+)', 0),
+            'maturity_date': self._find_pattern_with_source(text, r'(?:Maturity Date|Loan Maturity):\s*([^\n]+)', 0),
+            'ltv': self._find_pattern_with_source(text, r'(?:LTV|Loan to Value):\s*([\d.]+)%?', 0)
         }
         return details
     
@@ -182,10 +190,10 @@ class DataExtractor:
     def _extract_market_analysis_with_citations(self, text: str) -> Dict[str, Any]:
         """Extract market analysis with citations"""
         analysis = {
-            'market': self._find_pattern_with_citation(text, r'(?:Market|Market Analysis|MSA):\s*([^\n]+)', 0),
-            'submarket': self._find_pattern_with_citation(text, r'(?:Submarket|Sub-market):\s*([^\n]+)', 0),
-            'comparable_properties': self._find_multiple_patterns_with_citations(text, r'(?:Comparable|Comp|Similar Properties):\s*([^\n]+)', 5),
-            'market_trends': self._find_multiple_patterns_with_citations(text, r'(?:Market Trend|Trend):\s*([^\n]+)', 5)
+            'market': self._find_pattern_with_source(text, r'(?:Market|Market Analysis|MSA):\s*([^\n]+)', 0),
+            'submarket': self._find_pattern_with_source(text, r'(?:Submarket|Sub-market):\s*([^\n]+)', 0),
+            'comparable_properties': self._find_multiple_patterns_with_sources(text, r'(?:Comparable|Comp|Similar Properties):\s*([^\n]+)', 5),
+            'market_trends': self._find_multiple_patterns_with_sources(text, r'(?:Market Trend|Trend):\s*([^\n]+)', 5)
         }
         return analysis
     
@@ -216,16 +224,16 @@ class DataExtractor:
                 value = match.group(1).strip() if match.lastindex and match.lastindex >= 1 else None
                 
                 if value:
-                    # Get surrounding context for citation (up to 100 chars before and after)
+                    # Get surrounding context for source text (up to 100 chars before and after)
                     start = max(0, match.start() - 50)
                     end = min(len(text), match.end() + 50)
-                    citation = text[start:end].strip()
+                    source_text = text[start:end].strip()
                     
-                    return {"value": value, "citation": citation}
+                    return {"value": value, "unit": None, "source_text": source_text}
             
-            return {"value": None, "citation": None}
+            return {"value": None, "unit": None, "source_text": None}
         except:
-            return {"value": None, "citation": None}
+            return {"value": None, "unit": None, "source_text": None}
     
     def _find_multiple_patterns_with_citations(self, text: str, pattern: str, limit: int = 5) -> List[Dict[str, Optional[str]]]:
         """Find multiple patterns in text with citations"""
@@ -240,14 +248,33 @@ class DataExtractor:
                     # Get surrounding context for citation
                     start = max(0, match.start() - 50)
                     end = min(len(text), match.end() + 50)
-                    citation = text[start:end].strip()
+                    source_text = text[start:end].strip()
                     
+                    if "tenant" in pattern.lower():
+                        key = "name"
+                    elif "risk" in pattern.lower():
+                        key = "risk"
+                    elif "mitigation" in pattern.lower() or "strategy" in pattern.lower():
+                        key = "strategy"
+                    elif "trend" in pattern.lower():
+                        key = "trend"
+                    else:
+                        key = "property"
+
                     results.append({
-                        "name" if "tenant" in pattern.lower() or "risk" in pattern.lower() else "property": value,
-                        "citation": citation
+                        key: value,
+                        "source_text": source_text
                     })
             
             return results
         except:
             return []
+
+    def _find_pattern_with_source(self, text: str, pattern: str, index: int = 0) -> Dict[str, Optional[str]]:
+        """Find a single pattern in text and return with source_text"""
+        return self._find_pattern_with_citation(text, pattern, index)
+
+    def _find_multiple_patterns_with_sources(self, text: str, pattern: str, limit: int = 5) -> List[Dict[str, Optional[str]]]:
+        """Find multiple patterns in text with source_text"""
+        return self._find_multiple_patterns_with_citations(text, pattern, limit)
 

@@ -15,46 +15,84 @@ CRE_EXTRACTION_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"], "description": "Source text snippet from document"}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"], "description": "Exact text snippet from document"}
                         }
                     },
                     "property_type": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "square_footage": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
+                        }
+                    },
+                    "acres": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["number", "null"]},
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
+                        }
+                    },
+                    "land_square_feet": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["number", "null"]},
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
+                        }
+                    },
+                    "gross_building_area": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["number", "null"]},
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
+                        }
+                    },
+                    "net_rentable_area": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["number", "null"]},
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "year_built": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["integer", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "units": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["integer", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "occupancy_rate": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     }
                 },
-                "required": ["property_address", "property_type", "square_footage", "year_built", "units", "occupancy_rate"],
+                "required": ["property_address", "property_type", "square_footage", "acres", "land_square_feet", "gross_building_area", "net_rentable_area", "year_built", "units", "occupancy_rate"],
                 "additionalProperties": False
             },
             "financial_metrics": {
@@ -65,83 +103,116 @@ CRE_EXTRACTION_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
+                        }
+                    },
+                    "stabilized_noi": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": ["number", "null"]},
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "cap_rate": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "purchase_price": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "appraised_value": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "annual_gross_income": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "operating_expenses": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "debt_service": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "dscr": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "irr": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "project_cost": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "expected_exit_valuation": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
+                    },
+                    "expected_rents": {
+                        "type": "array",
+                        "description": "Expected rent figures with citations",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {"type": ["string", "null"]},
+                                "value": {"type": ["number", "null"]},
+                                "unit": {"type": ["string", "null"]},
+                                "source_text": {"type": ["string", "null"]}
+                            }
+                        },
+                        "maxItems": 10
                     }
                 },
-                "required": ["noi_annual", "cap_rate", "purchase_price", "appraised_value", 
+                "required": ["noi_annual", "stabilized_noi", "cap_rate", "purchase_price", "appraised_value", 
                             "annual_gross_income", "operating_expenses", "debt_service", "dscr", "irr",
-                            "project_cost", "expected_exit_valuation"],
+                            "project_cost", "expected_exit_valuation", "expected_rents"],
                 "additionalProperties": False
             },
             "loan_details": {
@@ -152,49 +223,56 @@ CRE_EXTRACTION_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "interest_rate": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "loan_term_years": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["integer", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "loan_type": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "lender": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "maturity_date": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "ltv": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["number", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     }
                 },
@@ -213,7 +291,7 @@ CRE_EXTRACTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "name": {"type": "string"},
-                                "citation": {"type": ["string", "null"]}
+                                "source_text": {"type": ["string", "null"]}
                             }
                         },
                         "maxItems": 5
@@ -222,14 +300,16 @@ CRE_EXTRACTION_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "tenant_quality": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     }
                 },
@@ -244,14 +324,16 @@ CRE_EXTRACTION_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "submarket": {
                         "type": "object",
                         "properties": {
                             "value": {"type": ["string", "null"]},
-                            "citation": {"type": ["string", "null"]}
+                            "unit": {"type": ["string", "null"]},
+                            "source_text": {"type": ["string", "null"]}
                         }
                     },
                     "comparable_properties": {
@@ -261,7 +343,7 @@ CRE_EXTRACTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "property": {"type": "string"},
-                                "citation": {"type": ["string", "null"]}
+                                "source_text": {"type": ["string", "null"]}
                             }
                         },
                         "maxItems": 5
@@ -273,7 +355,7 @@ CRE_EXTRACTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "trend": {"type": "string"},
-                                "citation": {"type": ["string", "null"]}
+                                "source_text": {"type": ["string", "null"]}
                             }
                         },
                         "maxItems": 5
@@ -293,7 +375,7 @@ CRE_EXTRACTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "risk": {"type": "string"},
-                                "citation": {"type": ["string", "null"]}
+                                "source_text": {"type": ["string", "null"]}
                             }
                         },
                         "maxItems": 5
@@ -305,7 +387,7 @@ CRE_EXTRACTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "strategy": {"type": "string"},
-                                "citation": {"type": ["string", "null"]}
+                                "source_text": {"type": ["string", "null"]}
                             }
                         },
                         "maxItems": 5

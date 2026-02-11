@@ -138,8 +138,12 @@ function createMOICSection(metrics, index) {
     section.className = 'moic-section';
     
     const financialMetrics = metrics.financial_metrics || {};
-    const projectCost = getMetricValue(financialMetrics.project_cost) || getMetricValue(financialMetrics.purchase_price);
-    const exitValuation = getMetricValue(financialMetrics.expected_exit_valuation);
+    const projectCostMetric = financialMetrics.project_cost || financialMetrics.purchase_price;
+    const exitValuationMetric = financialMetrics.expected_exit_valuation;
+    const projectCost = getMetricValue(projectCostMetric);
+    const exitValuation = getMetricValue(exitValuationMetric);
+    const projectCostSource = getMetricSource(projectCostMetric);
+    const exitValuationSource = getMetricSource(exitValuationMetric);
     
     const moic = calculateMOIC(projectCost, exitValuation);
     
@@ -153,12 +157,14 @@ function createMOICSection(metrics, index) {
                 <input type="number" class="editable-input" data-index="${index}" 
                        data-category="financial_metrics" data-field="project_cost" 
                        value="${projectCost || ''}" placeholder="Enter project cost">
+                ${projectCostSource ? `<div class="metric-citation">📄 ${projectCostSource}</div>` : ''}
             </div>
             <div class="moic-input-group">
                 <label>Expected Exit Valuation ($)</label>
                 <input type="number" class="editable-input" data-index="${index}" 
                        data-category="financial_metrics" data-field="expected_exit_valuation" 
                        value="${exitValuation || ''}" placeholder="Enter exit valuation">
+                ${exitValuationSource ? `<div class="metric-citation">📄 ${exitValuationSource}</div>` : ''}
             </div>
         </div>
         <div class="moic-display">
@@ -178,6 +184,16 @@ function getMetricValue(metric) {
         return metric.value;
     }
     return metric;
+}
+
+function getMetricUnit(metric) {
+    if (!metric || typeof metric !== 'object') return null;
+    return metric.unit || null;
+}
+
+function getMetricSource(metric) {
+    if (!metric || typeof metric !== 'object') return null;
+    return metric.source_text || metric.citation || null;
 }
 
 function calculateMOIC(projectCost, exitValuation) {
@@ -226,7 +242,12 @@ function createMetricsGroups(metrics, index) {
                 const tenants = Array.isArray(data.major_tenants) ? data.major_tenants : [];
                 tenants.forEach(tenant => {
                     const li = document.createElement('li');
-                    li.textContent = typeof tenant === 'object' ? tenant.name : tenant;
+                    const tenantName = typeof tenant === 'object' ? tenant.name : tenant;
+                    const tenantSource = typeof tenant === 'object' ? (tenant.source_text || tenant.citation) : null;
+                    li.innerHTML = `
+                        <div class="metric-list-item">${tenantName}</div>
+                        ${tenantSource ? `<div class="metric-citation">📄 ${tenantSource}</div>` : ''}
+                    `;
                     ul.appendChild(li);
                 });
                 groupContent.appendChild(ul);
@@ -237,15 +258,84 @@ function createMetricsGroups(metrics, index) {
                 const riskArray = Array.isArray(risks) ? risks : [];
                 riskArray.forEach(risk => {
                     const li = document.createElement('li');
-                    li.textContent = typeof risk === 'object' ? risk.risk : risk;
+                    const riskText = typeof risk === 'object' ? (risk.risk || risk.strategy || risk.name) : risk;
+                    const riskSource = typeof risk === 'object' ? (risk.source_text || risk.citation) : null;
+                    li.innerHTML = `
+                        <div class="metric-list-item">${riskText}</div>
+                        ${riskSource ? `<div class="metric-citation">📄 ${riskSource}</div>` : ''}
+                    `;
                     ul.appendChild(li);
                 });
                 groupContent.appendChild(ul);
+                if (Array.isArray(data.mitigation_strategies) && data.mitigation_strategies.length > 0) {
+                    const mitigationList = document.createElement('ul');
+                    mitigationList.className = 'metrics-list';
+                    data.mitigation_strategies.forEach(strategy => {
+                        const strategyText = typeof strategy === 'object' ? (strategy.strategy || strategy.name) : strategy;
+                        const strategySource = typeof strategy === 'object' ? (strategy.source_text || strategy.citation) : null;
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="metric-list-item">${strategyText}</div>
+                            ${strategySource ? `<div class="metric-citation">📄 ${strategySource}</div>` : ''}
+                        `;
+                        mitigationList.appendChild(li);
+                    });
+                    groupContent.appendChild(mitigationList);
+                }
             } else {
+                if (key === 'financial_metrics' && Array.isArray(data.expected_rents)) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'metrics-list';
+                    data.expected_rents.forEach(rent => {
+                        const rentType = rent.type ? `${rent.type}: ` : '';
+                        const rentValue = rent.value !== undefined && rent.value !== null ? rent.value : '';
+                        const rentUnit = rent.unit ? ` ${rent.unit}` : '';
+                        const rentSource = rent.source_text || rent.citation || null;
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="metric-list-item">${rentType}${rentValue}${rentUnit}</div>
+                            ${rentSource ? `<div class="metric-citation">📄 ${rentSource}</div>` : ''}
+                        `;
+                        ul.appendChild(li);
+                    });
+                    groupContent.appendChild(ul);
+                }
+                if (key === 'market_analysis' && Array.isArray(data.comparable_properties)) {
+                    const compsList = document.createElement('ul');
+                    compsList.className = 'metrics-list';
+                    data.comparable_properties.forEach(comp => {
+                        const compText = typeof comp === 'object' ? (comp.property || comp.name) : comp;
+                        const compSource = typeof comp === 'object' ? (comp.source_text || comp.citation) : null;
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="metric-list-item">${compText}</div>
+                            ${compSource ? `<div class="metric-citation">📄 ${compSource}</div>` : ''}
+                        `;
+                        compsList.appendChild(li);
+                    });
+                    groupContent.appendChild(compsList);
+                }
+                if (key === 'market_analysis' && Array.isArray(data.market_trends)) {
+                    const trendsList = document.createElement('ul');
+                    trendsList.className = 'metrics-list';
+                    data.market_trends.forEach(trend => {
+                        const trendText = typeof trend === 'object' ? (trend.trend || trend.name) : trend;
+                        const trendSource = typeof trend === 'object' ? (trend.source_text || trend.citation) : null;
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="metric-list-item">${trendText}</div>
+                            ${trendSource ? `<div class="metric-citation">📄 ${trendSource}</div>` : ''}
+                        `;
+                        trendsList.appendChild(li);
+                    });
+                    groupContent.appendChild(trendsList);
+                }
                 Object.entries(data).forEach(([metricKey, metricData]) => {
                     if (Array.isArray(metricData)) return; // Skip arrays handled above
                     
                     const value = getMetricValue(metricData);
+                    const unit = getMetricUnit(metricData);
+                    const source = getMetricSource(metricData);
                     const item = document.createElement('div');
                     item.className = 'metric-item';
                     const displayKey = metricKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -264,6 +354,8 @@ function createMetricsGroups(metrics, index) {
                         <input type="${inputType}" class="metric-value editable-input" 
                                data-index="${index}" data-category="${key}" data-field="${metricKey}" 
                                value="${value || ''}" placeholder="Not found">
+                        ${unit ? `<div class="metric-unit">Unit: ${unit}</div>` : ''}
+                        ${source ? `<div class="metric-citation">📄 ${source}</div>` : ''}
                     `;
                     groupContent.appendChild(item);
                 });

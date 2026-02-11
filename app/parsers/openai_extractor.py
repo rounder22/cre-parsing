@@ -35,33 +35,32 @@ class OpenAIExtractor:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert commercial real estate analyst. Your task is to extract and structure 
-                        key underwriting information from documents WITH SOURCE CITATIONS.
+                        "content": """You are an expert commercial real estate analyst. Extract detailed CRE financial and operational metrics.
 
-                        IMPORTANT: For every data value you extract, you MUST provide a citation showing where it came from in the document.
+CRITICAL REQUIREMENTS:
+1. For EVERY extracted value, include the exact source_text snippet from the document that supports it.
+2. If a field is not mentioned, set value to null and source_text to null (unit should be null when value is null).
+3. Always include a unit when the document provides one (e.g., USD, USD/SF/yr, %, acres, SF). If not stated, set unit to null.
+4. Use null for missing information, not empty strings.
+5. Convert currency values to numbers (remove $ and commas).
+6. Convert percentages to numbers (e.g., 5.5% -> 5.5) and set unit to "%".
+7. For dates, use YYYY-MM-DD format when possible.
+8. For lists, include up to 5-10 items as allowed and provide source_text for each item.
+9. Source_text must be an exact snippet from the document (25-200 characters).
 
-                        When extracting data:
-                        1. Be precise and extract only information explicitly stated in the document
-                        2. For EVERY extracted value, include a citation - the exact text snippet from the document that supports it
-                        3. If you cannot find a citation for a value, set both value and citation to null
-                        4. Use null for missing information, not empty strings
-                        5. Convert all currency values to numbers (remove $ and commas)
-                        6. Convert percentages to numbers (e.g., 5.5% becomes 5.5)
-                        7. For dates, use YYYY-MM-DD format if possible
-                        8. For lists, include up to 5 items maximum with citations for each
-                        9. Citations should be concise but informative (25-150 characters)
-                        10. For array items (tenants, risks, trends), each item should have its own citation
-                        
-                        Return a valid JSON object matching the specified schema with complete citation coverage."""
+Return a valid JSON object matching the specified schema with complete source_text coverage for every non-null value."""
                     },
                     {
                         "role": "user",
-                        "content": f"""Extract structured CRE data from the following document text, including citations for EVERY extracted value:
+                        "content": f"""Extract structured CRE data from the following document text. For each value, return value, unit, and source_text.
 
+Key fields to capture include (not limited to): total project cost, expected exit valuation, stabilized NOI, operating expenses,
+acres, land square feet, gross building area, net rentable area, and expected rents.
+
+Document text:
 {text}
 
-Remember: EVERY non-null value must have a corresponding citation showing where it came from in the document.
-Please provide a comprehensive extraction of all available information with full citation coverage in the specified JSON format."""
+Remember: EVERY non-null value must have a corresponding source_text snippet from the document."""
                     }
                 ]
             )
@@ -93,41 +92,49 @@ Please provide a comprehensive extraction of all available information with full
         """Return empty response with correct structure including citations"""
         return {
             "property_details": {
-                "property_address": {"value": None, "citation": None},
-                "property_type": {"value": None, "citation": None},
-                "square_footage": {"value": None, "citation": None},
-                "year_built": {"value": None, "citation": None},
-                "units": {"value": None, "citation": None},
-                "occupancy_rate": {"value": None, "citation": None}
+                "property_address": {"value": None, "unit": None, "source_text": None},
+                "property_type": {"value": None, "unit": None, "source_text": None},
+                "square_footage": {"value": None, "unit": None, "source_text": None},
+                "acres": {"value": None, "unit": None, "source_text": None},
+                "land_square_feet": {"value": None, "unit": None, "source_text": None},
+                "gross_building_area": {"value": None, "unit": None, "source_text": None},
+                "net_rentable_area": {"value": None, "unit": None, "source_text": None},
+                "year_built": {"value": None, "unit": None, "source_text": None},
+                "units": {"value": None, "unit": None, "source_text": None},
+                "occupancy_rate": {"value": None, "unit": None, "source_text": None}
             },
             "financial_metrics": {
-                "noi_annual": {"value": None, "citation": None},
-                "cap_rate": {"value": None, "citation": None},
-                "purchase_price": {"value": None, "citation": None},
-                "appraised_value": {"value": None, "citation": None},
-                "annual_gross_income": {"value": None, "citation": None},
-                "operating_expenses": {"value": None, "citation": None},
-                "debt_service": {"value": None, "citation": None},
-                "dscr": {"value": None, "citation": None},
-                "irr": {"value": None, "citation": None}
+                "noi_annual": {"value": None, "unit": None, "source_text": None},
+                "stabilized_noi": {"value": None, "unit": None, "source_text": None},
+                "cap_rate": {"value": None, "unit": None, "source_text": None},
+                "purchase_price": {"value": None, "unit": None, "source_text": None},
+                "appraised_value": {"value": None, "unit": None, "source_text": None},
+                "annual_gross_income": {"value": None, "unit": None, "source_text": None},
+                "operating_expenses": {"value": None, "unit": None, "source_text": None},
+                "debt_service": {"value": None, "unit": None, "source_text": None},
+                "dscr": {"value": None, "unit": None, "source_text": None},
+                "irr": {"value": None, "unit": None, "source_text": None},
+                "project_cost": {"value": None, "unit": None, "source_text": None},
+                "expected_exit_valuation": {"value": None, "unit": None, "source_text": None},
+                "expected_rents": []
             },
             "loan_details": {
-                "loan_amount": {"value": None, "citation": None},
-                "interest_rate": {"value": None, "citation": None},
-                "loan_term_years": {"value": None, "citation": None},
-                "loan_type": {"value": None, "citation": None},
-                "lender": {"value": None, "citation": None},
-                "maturity_date": {"value": None, "citation": None},
-                "ltv": {"value": None, "citation": None}
+                "loan_amount": {"value": None, "unit": None, "source_text": None},
+                "interest_rate": {"value": None, "unit": None, "source_text": None},
+                "loan_term_years": {"value": None, "unit": None, "source_text": None},
+                "loan_type": {"value": None, "unit": None, "source_text": None},
+                "lender": {"value": None, "unit": None, "source_text": None},
+                "maturity_date": {"value": None, "unit": None, "source_text": None},
+                "ltv": {"value": None, "unit": None, "source_text": None}
             },
             "tenant_information": {
                 "major_tenants": [],
-                "lease_terms": {"value": None, "citation": None},
-                "tenant_quality": {"value": None, "citation": None}
+                "lease_terms": {"value": None, "unit": None, "source_text": None},
+                "tenant_quality": {"value": None, "unit": None, "source_text": None}
             },
             "market_analysis": {
-                "market": {"value": None, "citation": None},
-                "submarket": {"value": None, "citation": None},
+                "market": {"value": None, "unit": None, "source_text": None},
+                "submarket": {"value": None, "unit": None, "source_text": None},
                 "comparable_properties": [],
                 "market_trends": []
             },
@@ -168,7 +175,7 @@ Please provide a comprehensive extraction of all available information with full
     
     def _count_total_fields(self) -> int:
         """Count total extractable fields"""
-        return 31  # Based on schema
+        return 38  # Based on schema
     
     def _count_filled_fields(self, data: Dict[str, Any]) -> int:
         """Count non-null fields in extracted data"""
@@ -178,7 +185,7 @@ Please provide a comprehensive extraction of all available information with full
             nonlocal count
             if isinstance(obj, dict):
                 for key, value in obj.items():
-                    if key == 'citation':
+                    if key in ('source_text', 'unit'):
                         continue
                     if value is None:
                         continue
@@ -212,15 +219,15 @@ Please provide a comprehensive extraction of all available information with full
             if isinstance(obj, dict):
                 for key, value in obj.items():
                     if isinstance(value, dict):
-                        if 'value' in value and 'citation' in value:
-                            if value['value'] is not None and value['citation'] is not None:
+                        if 'value' in value and 'source_text' in value:
+                            if value['value'] is not None and value['source_text'] is not None:
                                 count += 1
                         else:
                             count_citations(value)
                     elif isinstance(value, list):
                         for item in value:
-                            if isinstance(item, dict) and 'citation' in item:
-                                if item.get('citation') is not None and any(v for k, v in item.items() if k != 'citation' and v is not None):
+                            if isinstance(item, dict) and 'source_text' in item:
+                                if item.get('source_text') is not None and any(v for k, v in item.items() if k not in ('source_text', 'unit') and v is not None):
                                     count += 1
         
         count_citations(data)
@@ -234,6 +241,8 @@ Please provide a comprehensive extraction of all available information with full
             for key, value in obj.items():
                 field_path = f"{prefix}.{key}" if prefix else key
                 if isinstance(value, dict):
+                    if key in ("source_text", "unit"):
+                        continue
                     check_fields(value, field_path)
                 elif isinstance(value, list):
                     if not value:
